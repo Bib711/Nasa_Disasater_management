@@ -1,12 +1,20 @@
 {
-  "name": "my-v0-project",
-  "version": "0.1.0",
+  "name": "nasa-disaster-management",
+  "version": "1.0.0",
+  "description": "NASA Disaster Management System - Real-time incident reporting and rescue coordination",
   "private": true,
   "scripts": {
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": ["disaster-management", "emergency-response", "nasa", "nextjs", "rescue"],
+  "author": "Bib711",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bib711/Nasa_Disasater_management"
   },
   "dependencies": {
     "@auth/core": "latest",
