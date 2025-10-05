@@ -96,15 +96,27 @@ export function RescueTabs() {
     revalidateOnFocus: false,
   })
 
-  async function act(id: string, action: "confirm" | "reject") {
+  // Fetch accepted incidents for live alerts
+  const { data: acceptedData, mutate: mutateAccepted } = useSWR("/api/reports?status=accepted", fetcher, {
+    refreshInterval: 5000,
+    revalidateOnFocus: false,
+  })
+
+  async function act(id: string, action: "accept" | "reject" | "resolve") {
     const res = await fetch(`/api/reports/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action }),
     })
     if (res.ok) {
-      toast({ title: action === "confirm" ? "Report confirmed" : "Report rejected" })
-      mutate()
+      const actionMessages = {
+        accept: "Report accepted and moved to live alerts",
+        reject: "Report rejected",
+        resolve: "Incident resolved successfully"
+      }
+      toast({ title: actionMessages[action] })
+      mutate() // Refresh pending reports
+      mutateAccepted() // Refresh accepted reports
     } else {
       const j = await res.json().catch(() => ({}))
       toast({ title: "Action failed", description: j?.error || "Try again.", variant: "destructive" })
@@ -176,11 +188,11 @@ export function RescueTabs() {
                     size="sm" 
                     onClick={(e) => {
                       e.stopPropagation()
-                      act(r._id, "confirm")
+                      act(r._id, "accept")
                     }}
                     className="flex-1"
                   >
-                    ✅ Accept & Resolve
+                    ✅ Accept
                   </Button>
                   <Button 
                     size="sm" 
@@ -281,11 +293,11 @@ export function RescueTabs() {
                     size="sm" 
                     onClick={(e) => {
                       e.stopPropagation()
-                      act(r._id, "confirm")
+                      act(r._id, "accept")
                     }}
                     className="flex-1"
                   >
-                    ✅ Accept & Resolve
+                    ✅ Accept
                   </Button>
                   <Button 
                     size="sm" 
@@ -314,6 +326,58 @@ export function RescueTabs() {
       <TabsContent value="live" className="space-y-3">
         <div className="text-sm font-medium">Live Emergency Alerts</div>
         <div className="space-y-2 max-h-80 overflow-y-auto">
+          {/* Dynamic accepted incidents */}
+          {acceptedData?.reports?.length > 0 && (
+            <>
+              <div className="text-xs font-medium text-blue-600 mb-2">🚨 Active Incidents (Accepted Reports)</div>
+              {acceptedData.reports.map((incident: any) => (
+                <div key={incident._id} className="rounded-md border-2 border-blue-200 bg-blue-50 p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="text-lg">{getReportIcon(incident.type)}</span>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm">{incident.type}</h4>
+                        <p className="text-xs text-gray-700">{incident.details}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-800">
+                        ACTIVE
+                      </span>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {new Date(incident.createdAt || Date.now()).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+                  {(() => {
+                    let lat, lng
+                    if (incident.location?.coordinates?.length === 2) {
+                      [lng, lat] = incident.location.coordinates
+                    }
+                    if (lat && lng) {
+                      return (
+                        <div className="text-xs text-muted-foreground">📍 {lat.toFixed(4)}, {lng.toFixed(4)}</div>
+                      )
+                    }
+                    return null
+                  })()}
+                  <div className="pt-2 border-t border-blue-200">
+                    <Button 
+                      size="sm" 
+                      onClick={() => act(incident._id, "resolve")}
+                      className="w-full bg-green-600 hover:bg-green-700"
+                    >
+                      ✅ Mark as Resolved
+                    </Button>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t pt-2 mb-2"></div>
+            </>
+          )}
+          
+          {/* Static sample emergency alerts */}
+          <div className="text-xs font-medium text-orange-600 mb-2">⚠️ System Alerts</div>
           {[
             {
               id: 1,
@@ -328,7 +392,7 @@ export function RescueTabs() {
               id: 2,
               type: "🌊 Flood Warning",
               location: "Brahmaputra Basin, Assam",
-              severity: "Critical",
+              severity: "Critical", 
               time: "15 min ago",
               description: "River water levels rising above danger mark. Immediate evacuation advised.",
               coordinates: "26.2006°N, 92.9376°E"
@@ -347,7 +411,7 @@ export function RescueTabs() {
               type: "⛰️ Landslide Risk",
               location: "Western Ghats, Kerala",
               severity: "High",
-              time: "3 hours ago",
+              time: "3 hours ago", 
               description: "Heavy rainfall causing soil instability. Monitoring ongoing in vulnerable areas.",
               coordinates: "10.8505°N, 76.2711°E"
             }

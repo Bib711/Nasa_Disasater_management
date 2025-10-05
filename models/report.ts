@@ -14,8 +14,8 @@ const ReportSchema = new Schema(
     details: String,
     location: { type: GeoPoint, required: true },
     submittedBy: { type: Types.ObjectId, ref: "User" },
-    status: { type: String, enum: ["pending", "confirmed", "rejected"], default: "pending" },
-    priority: { type: String, enum: ["high", "medium", "low"], default: "medium" },
+    status: { type: String, enum: ["pending", "accepted", "resolved", "confirmed", "rejected"], default: "pending" },
+    priority: { type: String, enum: ["critical", "high", "medium", "low"], default: "medium" },
   },
   { timestamps: true },
 )

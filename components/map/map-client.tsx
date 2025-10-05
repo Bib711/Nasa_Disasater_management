@@ -409,6 +409,16 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
     }
   )
 
+  // Fetch accepted reports (active incidents)
+  const { data: acceptedReportsData } = useSWR(
+    mounted ? '/api/reports?status=accepted' : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 30000 // 30 seconds
+    }
+  )
+
   // Fetch NASA data
   const { data: nasaData, error: nasaError, isLoading } = useSWR(
     mounted ? "https://eonet.gsfc.nasa.gov/api/v2.1/events?status=open&limit=20" : null, 
@@ -438,6 +448,27 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
       alert.location?.coordinates?.[0] || 0
     ) : null
   }))
+
+  // Transform accepted reports (active incidents) data
+  const activeIncidents = (acceptedReportsData?.reports || []).map((report: any) => ({
+    id: report._id,
+    title: `Active: ${report.type}`,
+    type: report.type,
+    severity: 'high', // Active incidents get high priority
+    description: report.details || 'Citizen reported incident under investigation',
+    lat: report.location?.coordinates?.[1] || 0,
+    lng: report.location?.coordinates?.[0] || 0,
+    date: report.createdAt || new Date().toISOString(),
+    source: 'Active Incident',
+    distance: userLocation ? calculateDistance(
+      userLocation.lat, userLocation.lng,
+      report.location?.coordinates?.[1] || 0,
+      report.location?.coordinates?.[0] || 0
+    ) : null
+  }))
+
+  // Combine all alerts for map display
+  const allMapAlerts = [...localAlerts, ...activeIncidents]
 
   // Don't render anything on server side
   if (!mounted) {
@@ -469,7 +500,7 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
       <DynamicMap 
         center={center} 
         events={events} 
-        localAlerts={localAlerts}
+        localAlerts={allMapAlerts}
         height={height} 
         showLocateButton={showLocateButton} 
       />

@@ -68,34 +68,69 @@ export function ReportIncidentDialog() {
   }
 
   async function submitReport() {
-    if (!reportData.type || !reportData.details || !reportData.lat || !reportData.lng) {
-      toast({ title: "Missing fields", description: "Please fill all fields and set location", variant: "destructive" })
+    // Enhanced validation
+    if (!reportData.type) {
+      toast({ title: "Missing incident type", description: "Please select an incident type", variant: "destructive" })
+      return
+    }
+    
+    if (!reportData.details || reportData.details.trim().length < 10) {
+      toast({ title: "Missing description", description: "Please provide a detailed description (at least 10 characters)", variant: "destructive" })
+      return
+    }
+    
+    if (!reportData.lat || !reportData.lng) {
+      toast({ title: "Missing location", description: "Please set the incident location using 'Use My Location' or 'Pin on Map'", variant: "destructive" })
       return
     }
 
-    // Format data to match API expectations
-    const submissionData = {
-      type: reportData.type,
-      details: reportData.details,
-      location: {
-        type: "Point",
-        coordinates: [reportData.lng, reportData.lat] // GeoJSON format: [longitude, latitude]
-      }
+    // Validate coordinates are reasonable (within Earth's bounds)
+    if (Math.abs(reportData.lat) > 90 || Math.abs(reportData.lng) > 180) {
+      toast({ title: "Invalid location", description: "Location coordinates are invalid. Please try again.", variant: "destructive" })
+      return
     }
 
-    const res = await fetch("/api/reports", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(submissionData),
-    })
-    
-    if (res.ok) {
-      toast({ title: "Report submitted", description: "Thank you for reporting this incident. Rescue workers have been notified." })
-      setReportData({ type: "", details: "", lat: null, lng: null })
-      setIsOpen(false)
-    } else {
-      const error = await res.json().catch(() => ({ error: "Unknown error" }))
-      toast({ title: "Submit failed", description: error.error, variant: "destructive" })
+    try {
+      // Format data to match API expectations
+      const submissionData = {
+        type: reportData.type,
+        details: reportData.details.trim(),
+        location: {
+          type: "Point",
+          coordinates: [reportData.lng, reportData.lat] // GeoJSON format: [longitude, latitude]
+        }
+      }
+
+      const res = await fetch("/api/reports", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submissionData),
+      })
+      
+      if (res.ok) {
+        const result = await res.json()
+        toast({ 
+          title: "Report submitted successfully", 
+          description: `Report ID: ${result.report._id.slice(-6)}. Rescue workers have been notified.` 
+        })
+        setReportData({ type: "", details: "", lat: null, lng: null })
+        setIsOpen(false)
+      } else {
+        const error = await res.json().catch(() => ({ error: "Failed to submit report" }))
+        console.error("Report submission error:", error)
+        toast({ 
+          title: "Submit failed", 
+          description: error.error || "Unable to submit report. Please try again.", 
+          variant: "destructive" 
+        })
+      }
+    } catch (err) {
+      console.error("Network error:", err)
+      toast({ 
+        title: "Network error", 
+        description: "Unable to connect to server. Please check your internet connection.", 
+        variant: "destructive" 
+      })
     }
   }
 
