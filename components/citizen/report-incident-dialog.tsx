@@ -107,11 +107,10 @@ export function ReportIncidentDialog() {
           Report Incident
         </Button>
       </DialogTrigger>
-      <DialogContent className="fixed inset-0 z-[9999] max-w-none h-screen m-0 p-0 bg-background border-0">
-        {/* Full-screen overlay with form and map */}
-        <div className="flex flex-col h-full">
+      <DialogContent className="w-full max-w-md mx-auto my-8 p-0 border bg-background shadow-lg rounded-lg">
+        <div className="flex flex-col max-h-[80vh]">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur z-[10000] relative">
+          <div className="flex items-center justify-between p-4 border-b">
             <DialogTitle className="text-lg font-semibold">Report Emergency Incident</DialogTitle>
             <Button
               variant="ghost"
@@ -123,106 +122,80 @@ export function ReportIncidentDialog() {
             </Button>
           </div>
           
-          {/* Main content - Map background with floating form */}
-          <div className="flex-1 relative">
-            {/* Map placeholder */}
-            <div className="absolute inset-0 z-[9900] bg-gray-100 flex items-center justify-center">
-              <div className="text-gray-500">
-                <div className="text-lg font-semibold mb-2">📍 Map Location</div>
-                <div className="text-sm">Click to select incident location</div>
-              </div>
+          {/* Form Content */}
+          <div className="p-4 space-y-4 overflow-y-auto flex-1">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Incident Type</label>
+              <Select value={reportData.type} onValueChange={(value) => setReportData(prev => ({ ...prev, type: value }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select incident type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flood">🌊 Flood</SelectItem>
+                  <SelectItem value="fire">🔥 Fire</SelectItem>
+                  <SelectItem value="landslide">⛰️ Landslide</SelectItem>
+                  <SelectItem value="accident">🚗 Road Accident</SelectItem>
+                  <SelectItem value="medical">🏥 Medical Emergency</SelectItem>
+                  <SelectItem value="earthquake">🌍 Earthquake</SelectItem>
+                  <SelectItem value="storm">🌪️ Storm/Cyclone</SelectItem>
+                  <SelectItem value="other">⚠️ Other Emergency</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            
-            {/* ULTIMATE CENTERING - Guaranteed to work */}
-            <div 
-              style={{ 
-                position: 'fixed',
-                top: '0',
-                left: '0',
-                width: '100vw',
-                height: '100vh',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                zIndex: 10001,
-                pointerEvents: 'auto'
-              }}
-            >
-              {/* Floating form panel */}
-              <div 
-                className="w-80 max-w-[90vw] max-h-[80vh] bg-background/95 backdrop-blur rounded-lg border shadow-lg overflow-hidden"
-                style={{ pointerEvents: 'auto' }}
-              >
-                <div className="p-4 space-y-4 max-h-full overflow-y-auto">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Incident Type</label>
-                  <Select value={reportData.type} onValueChange={(value) => setReportData(prev => ({ ...prev, type: value }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select incident type" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[10002]">
-                      <SelectItem value="flood">Flood</SelectItem>
-                      <SelectItem value="fire">Fire</SelectItem>
-                      <SelectItem value="landslide">Landslide</SelectItem>
-                      <SelectItem value="accident">Road Accident</SelectItem>
-                      <SelectItem value="medical">Medical Emergency</SelectItem>
-                      <SelectItem value="earthquake">Earthquake</SelectItem>
-                      <SelectItem value="storm">Storm/Cyclone</SelectItem>
-                      <SelectItem value="other">Other Emergency</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Description</label>
-                  <Textarea
-                    placeholder="Describe the incident in detail..."
-                    value={reportData.details}
-                    onChange={(e) => setReportData(prev => ({ ...prev, details: e.target.value }))}
-                    className="min-h-[100px]"
-                  />
-                </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Description</label>
+              <Textarea
+                placeholder="Describe the incident in detail..."
+                value={reportData.details}
+                onChange={(e) => setReportData(prev => ({ ...prev, details: e.target.value }))}
+                className="min-h-[100px] resize-none"
+              />
+            </div>
 
-                <div className="space-y-3">
-                  <label className="text-sm font-medium block">Location</label>
-                  
-                  <div className="grid grid-cols-1 gap-2">
-                    <Button 
-                      variant="outline" 
-                      onClick={getCurrentLocation}
-                      className="w-full"
-                    >
-                      <LocateFixed className="w-4 h-4 mr-2" />
-                      Use My Location
-                    </Button>
-                    <Button 
-                      variant={pinMode ? "default" : "outline"} 
-                      onClick={enablePinMode}
-                      className="w-full"
-                    >
-                      <MapPin className="w-4 h-4 mr-2" />
-                      Pin on Map
-                    </Button>
-                  </div>
-
-                  {reportData.lat && reportData.lng && (
-                    <div className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                      <strong>Selected:</strong> {reportData.lat.toFixed(4)}, {reportData.lng.toFixed(4)}
-                    </div>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t">
-                  <Button 
-                    onClick={submitReport} 
-                    className="w-full"
-                    disabled={!reportData.type || !reportData.details || !reportData.lat || !reportData.lng}
-                  >
-                    Submit Report
-                  </Button>
-                </div>
-                </div>
+            <div className="space-y-3">
+              <label className="text-sm font-medium block">Location</label>
+              
+              <div className="grid grid-cols-1 gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={getCurrentLocation}
+                  className="w-full"
+                >
+                  <LocateFixed className="w-4 h-4 mr-2" />
+                  Use My Location
+                </Button>
+                <Button 
+                  variant={pinMode ? "default" : "outline"} 
+                  onClick={enablePinMode}
+                  className="w-full"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Pin on Map
+                </Button>
               </div>
+
+              {reportData.lat && reportData.lng && (
+                <div className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-600">📍</span>
+                    <div>
+                      <div className="font-medium">Location Selected</div>
+                      <div className="text-xs">{reportData.lat.toFixed(4)}, {reportData.lng.toFixed(4)}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="pt-4 border-t">
+              <Button 
+                onClick={submitReport} 
+                className="w-full"
+                disabled={!reportData.type || !reportData.details || !reportData.lat || !reportData.lng}
+              >
+                📤 Submit Report
+              </Button>
             </div>
           </div>
         </div>
