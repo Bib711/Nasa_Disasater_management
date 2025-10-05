@@ -163,8 +163,9 @@ export function GlobalEvents() {
         return (
           <div
             key={event.id}
-            className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer"
+            className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer bg-card"
             onClick={() => viewEventOnMap(event)}
+            title="Click to view on map"
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -198,18 +199,10 @@ export function GlobalEvents() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs">📍 {lat.toFixed(2)}, {lng.toFixed(2)}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    viewEventOnMap(event)
-                  }}
-                >
-                  <MapPin className="w-3 h-3 mr-1" />
-                  View
-                </Button>
+                <div className="flex items-center gap-1 text-blue-600">
+                  <MapPin className="w-3 h-3" />
+                  <span className="text-xs font-medium">View on Map</span>
+                </div>
               </div>
             </div>
           </div>

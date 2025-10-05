@@ -74,14 +74,24 @@ export function ReportIncidentDialog() {
       return
     }
 
+    // Format data to match API expectations
+    const submissionData = {
+      type: reportData.type,
+      details: reportData.details,
+      location: {
+        type: "Point",
+        coordinates: [reportData.lng, reportData.lat] // GeoJSON format: [longitude, latitude]
+      }
+    }
+
     const res = await fetch("/api/reports", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(reportData),
+      body: JSON.stringify(submissionData),
     })
     
     if (res.ok) {
-      toast({ title: "Report submitted", description: "Thank you for reporting this incident" })
+      toast({ title: "Report submitted", description: "Thank you for reporting this incident. Rescue workers have been notified." })
       setReportData({ type: "", details: "", lat: null, lng: null })
       setIsOpen(false)
     } else {

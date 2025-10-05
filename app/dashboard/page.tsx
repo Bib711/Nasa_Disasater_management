@@ -69,33 +69,7 @@ export default function DashboardPage() {
     })
   }
 
-  function getCurrentLocation() {
-    if (!navigator.geolocation) {
-      toast({ title: "Geolocation not supported", variant: "destructive" })
-      return
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        window.dispatchEvent(new CustomEvent("jaagratha:panTo", { 
-          detail: { lat, lng, title: "Your Location", zoom: 15 } 
-        }))
-        toast({ 
-          title: "Location found", 
-          description: `${lat.toFixed(4)}, ${lng.toFixed(4)}` 
-        })
-      },
-      (error) => {
-        toast({ 
-          title: "Location error", 
-          description: "Could not get your location",
-          variant: "destructive" 
-        })
-      }
-    )
-  }
+
 
   return (
     <main className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -105,17 +79,19 @@ export default function DashboardPage() {
             <CardTitle>Live Map</CardTitle>
           </CardHeader>
           <CardContent>
-            <MapClient 
-              initial={defaultCenter} 
-              height={520}
-            />
+            <Suspense fallback={<div className="h-[520px] bg-muted rounded-lg flex items-center justify-center">Loading map...</div>}>
+              <MapClient 
+                initial={defaultCenter} 
+                height={520}
+              />
+            </Suspense>
           </CardContent>
         </Card>
       </section>
       <aside className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Active Alerts</CardTitle>
+            <CardTitle>Local Alerts (150km radius)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Suspense fallback={<div className="text-sm text-muted-foreground">Loading alerts...</div>}>
@@ -140,9 +116,36 @@ export default function DashboardPage() {
             <MapPin className="w-4 h-4 mr-2" />
             Find Nearest Relief Center
           </Button>
-          <Button variant="outline" onClick={getCurrentLocation}>
-            <LocateFixed className="w-4 h-4 mr-2" />
-            Locate Me
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              try {
+                const res = await fetch("/api/alerts/seed", { method: "POST" })
+                const data = await res.json()
+                if (res.ok) {
+                  toast({ 
+                    title: "Sample alerts created", 
+                    description: `Added ${data.count} local alerts`
+                  })
+                  // Refresh the page to show new alerts
+                  window.location.reload()
+                } else {
+                  toast({ 
+                    title: "Failed to create alerts", 
+                    description: data.error,
+                    variant: "destructive" 
+                  })
+                }
+              } catch (error) {
+                toast({ 
+                  title: "Error", 
+                  description: "Failed to create sample alerts",
+                  variant: "destructive" 
+                })
+              }
+            }}
+          >
+            🌟 Add Sample Local Alerts
           </Button>
           <Button variant="outline" onClick={() => signOut({ callbackUrl: "/logged-out" })}>
             Log Out

@@ -44,33 +44,7 @@ export default function RescueDashboard() {
     return () => clearTimeout(timer)
   }, [])
   
-  function getCurrentLocation() {
-    if (!navigator.geolocation) {
-      toast({ title: "Geolocation not supported", variant: "destructive" })
-      return
-    }
-    
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const lat = position.coords.latitude
-        const lng = position.coords.longitude
-        window.dispatchEvent(new CustomEvent("jaagratha:panTo", { 
-          detail: { lat, lng, title: "Your Location", zoom: 15 } 
-        }))
-        toast({ 
-          title: "Location found", 
-          description: `${lat.toFixed(4)}, ${lng.toFixed(4)}` 
-        })
-      },
-      (error) => {
-        toast({ 
-          title: "Location error", 
-          description: "Could not get your location",
-          variant: "destructive" 
-        })
-      }
-    )
-  }
+
   
   // Prevent hydration mismatch by showing loading during SSR
   if (!mounted) {
@@ -121,14 +95,7 @@ export default function RescueDashboard() {
       </section>
       <aside className="space-y-4">
         <RescueTabs />
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={getCurrentLocation}
-        >
-          <LocateFixed className="w-4 h-4 mr-2" />
-          Locate Me
-        </Button>
+
         <Button
           variant="outline"
           className="w-full"

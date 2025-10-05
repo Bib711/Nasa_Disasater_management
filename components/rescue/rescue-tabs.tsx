@@ -16,12 +16,22 @@ export function RescueTabs() {
   const [targetGroup, setTargetGroup] = useState("citizens")
 
   function viewReportOnMap(report: any) {
-    if (report.lat && report.lng) {
+    // Extract coordinates from GeoJSON location or fallback to direct lat/lng
+    let lat, lng
+    
+    if (report.location?.coordinates?.length === 2) {
+      [lng, lat] = report.location.coordinates // GeoJSON format: [longitude, latitude]
+    } else if (report.lat && report.lng) {
+      lat = report.lat
+      lng = report.lng
+    }
+    
+    if (lat && lng) {
       // Dispatch event to pan map to report location
       window.dispatchEvent(new CustomEvent("jaagratha:panTo", { 
         detail: { 
-          lat: report.lat, 
-          lng: report.lng, 
+          lat, 
+          lng, 
           title: `${report.type} Report`,
           zoom: 14 
         } 
@@ -102,16 +112,17 @@ export function RescueTabs() {
   }
 
   return (
-    <Tabs defaultValue="live">
-      <TabsList className="grid grid-cols-4">
-        <TabsTrigger value="live">Live Reports</TabsTrigger>
+    <Tabs defaultValue="reviews">
+      <TabsList className="grid grid-cols-5">
+        <TabsTrigger value="reviews">Reviews</TabsTrigger>
+        <TabsTrigger value="live">Live Alerts</TabsTrigger>
         <TabsTrigger value="global">Global Events</TabsTrigger>
         <TabsTrigger value="prediction">Prediction</TabsTrigger>
         <TabsTrigger value="comms">Comms</TabsTrigger>
       </TabsList>
 
-      <TabsContent value="live" className="space-y-3">
-        <div className="text-sm font-medium">Pending Citizen Reports</div>
+      <TabsContent value="reviews" className="space-y-3">
+        <div className="text-sm font-medium">Citizen Incident Reports</div>
         {isLoading ? (
           <div className="space-y-2">
             {[...Array(3)].map((_, i) => (
@@ -140,11 +151,25 @@ export function RescueTabs() {
                   </div>
                 </div>
                 
-                {(r.lat && r.lng) && (
-                  <div className="text-xs text-muted-foreground">
-                    📍 {r.lat.toFixed(4)}, {r.lng.toFixed(4)}
-                  </div>
-                )}
+                {/* Display location coordinates */}
+                {(() => {
+                  let lat, lng
+                  if (r.location?.coordinates?.length === 2) {
+                    [lng, lat] = r.location.coordinates
+                  } else if (r.lat && r.lng) {
+                    lat = r.lat
+                    lng = r.lng
+                  }
+                  
+                  if (lat && lng) {
+                    return (
+                      <div className="text-xs text-muted-foreground">
+                        📍 {lat.toFixed(4)}, {lng.toFixed(4)}
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
                 
                 <div className="flex gap-2 pt-2 border-t">
                   <Button 
@@ -155,7 +180,7 @@ export function RescueTabs() {
                     }}
                     className="flex-1"
                   >
-                    ✅ Resolve
+                    ✅ Accept & Resolve
                   </Button>
                   <Button 
                     size="sm" 
@@ -179,6 +204,15 @@ export function RescueTabs() {
             <div className="text-xs text-muted-foreground mt-1">All incidents are resolved</div>
           </div>
         )}
+      </TabsContent>
+
+      <TabsContent value="live" className="space-y-3">
+        <div className="text-sm font-medium">Live Emergency Alerts</div>
+        <div className="text-center py-8">
+          <div className="text-4xl mb-2">🚨</div>
+          <div className="text-sm text-muted-foreground">No active emergency alerts</div>
+          <div className="text-xs text-muted-foreground mt-1">System-generated alerts will appear here</div>
+        </div>
       </TabsContent>
 
       <TabsContent value="global" className="space-y-3">
