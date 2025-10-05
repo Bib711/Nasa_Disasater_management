@@ -53,7 +53,7 @@ export function UnifiedMap({ initial, height = 420, componentId, className }: Un
   }))
 
   // Initialize map with singleton
-  const { containerRef, mapInstance, isLoading, panTo } = useMapSingleton({
+  const { containerRef, mapInstance, panTo } = useMapSingleton({
     center: centerArray,
     componentId,
     onMapReady: (map) => {
@@ -252,19 +252,7 @@ export function UnifiedMap({ initial, height = 420, componentId, className }: Un
     )
   }, [panTo])
 
-  if (isLoading) {
-    return (
-      <div 
-        className={`flex items-center justify-center bg-muted rounded-lg ${className || ''}`}
-        style={{ height }}
-      >
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p className="text-sm text-muted-foreground">Loading map...</p>
-        </div>
-      </div>
-    )
-  }
+
 
   return (
     <div className={`relative overflow-hidden rounded-lg ${className || ''}`} style={{ height }}>

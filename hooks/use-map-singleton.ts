@@ -13,7 +13,6 @@ interface UseMapSingletonOptions {
 export function useMapSingleton({ center, componentId, onMapReady }: UseMapSingletonOptions) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [mapInstance, setMapInstance] = useState<LeafletMap | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
   const mapSingleton = MapSingleton.getInstance()
 
   useEffect(() => {
@@ -21,7 +20,6 @@ export function useMapSingleton({ center, componentId, onMapReady }: UseMapSingl
 
     const initializeMap = async () => {
       try {
-        setIsLoading(true)
         
         // Small delay to ensure container is properly mounted
         await new Promise(resolve => setTimeout(resolve, 100))
@@ -40,8 +38,6 @@ export function useMapSingleton({ center, componentId, onMapReady }: UseMapSingl
         }
       } catch (error) {
         console.error('[useMapSingleton] Failed to initialize map:', error)
-      } finally {
-        setIsLoading(false)
       }
     }
 
@@ -71,7 +67,7 @@ export function useMapSingleton({ center, componentId, onMapReady }: UseMapSingl
   return {
     containerRef,
     mapInstance,
-    isLoading,
+    isLoading: false,
     updateMapView,
     panTo,
     isInitialized: mapSingleton.isMapInitialized()

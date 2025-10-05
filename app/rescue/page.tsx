@@ -57,7 +57,7 @@ export default function RescueDashboard() {
             </CardHeader>
             <CardContent>
               <div className="h-[520px] bg-muted rounded-lg flex items-center justify-center">
-                <div className="text-muted-foreground">Loading map...</div>
+                <div></div>
               </div>
             </CardContent>
           </Card>
@@ -95,6 +95,40 @@ export default function RescueDashboard() {
       </section>
       <aside className="space-y-4">
         <RescueTabs />
+
+        {/* Seed Sample Data Button */}
+        <Button
+          variant="secondary"
+          className="w-full"
+          onClick={async () => {
+            try {
+              const res = await fetch("/api/reports/seed", { method: "POST" })
+              const data = await res.json()
+              if (res.ok) {
+                toast({
+                  title: "Sample reports created", 
+                  description: `Added ${data.count} incident reports`
+                })
+                // Refresh the page to show new reports
+                window.location.reload()
+              } else {
+                toast({
+                  title: "Failed to create reports", 
+                  description: data.error || "Unknown error",
+                  variant: "destructive"
+                })
+              }
+            } catch (error) {
+              toast({
+                title: "Error",
+                description: "Failed to create sample reports",
+                variant: "destructive"
+              })
+            }
+          }}
+        >
+          🗂️ Add Sample Reports
+        </Button>
 
         <Button
           variant="outline"

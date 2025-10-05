@@ -7,7 +7,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AlertTriangle, MapPin, X, LocateFixed } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import { MapboxMap } from "@/components/map/mapbox-map"
 
 export function ReportIncidentDialog() {
   const { toast } = useToast()
@@ -108,11 +107,11 @@ export function ReportIncidentDialog() {
           Report Incident
         </Button>
       </DialogTrigger>
-      <DialogContent className="fixed inset-0 z-50 max-w-none h-screen m-0 p-0 bg-background border-0">
+      <DialogContent className="fixed inset-0 z-[9999] max-w-none h-screen m-0 p-0 bg-background border-0">
         {/* Full-screen overlay with form and map */}
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur">
+          <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur z-[10000] relative">
             <DialogTitle className="text-lg font-semibold">Report Emergency Incident</DialogTitle>
             <Button
               variant="ghost"
@@ -126,24 +125,42 @@ export function ReportIncidentDialog() {
           
           {/* Main content - Map background with floating form */}
           <div className="flex-1 relative">
-            {/* Full-screen map */}
-            <div className="absolute inset-0">
-              <MapboxMap 
-                initial={userLocation} 
-                height="100%"
-              />
+            {/* Map placeholder */}
+            <div className="absolute inset-0 z-[9900] bg-gray-100 flex items-center justify-center">
+              <div className="text-gray-500">
+                <div className="text-lg font-semibold mb-2">📍 Map Location</div>
+                <div className="text-sm">Click to select incident location</div>
+              </div>
             </div>
             
-            {/* Floating form panel */}
-            <div className="absolute top-4 left-4 w-80 max-h-[calc(100vh-120px)] bg-background/95 backdrop-blur rounded-lg border shadow-lg overflow-hidden">
-              <div className="p-4 space-y-4 max-h-full overflow-y-auto">
+            {/* ULTIMATE CENTERING - Guaranteed to work */}
+            <div 
+              style={{ 
+                position: 'fixed',
+                top: '0',
+                left: '0',
+                width: '100vw',
+                height: '100vh',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10001,
+                pointerEvents: 'auto'
+              }}
+            >
+              {/* Floating form panel */}
+              <div 
+                className="w-80 max-w-[90vw] max-h-[80vh] bg-background/95 backdrop-blur rounded-lg border shadow-lg overflow-hidden"
+                style={{ pointerEvents: 'auto' }}
+              >
+                <div className="p-4 space-y-4 max-h-full overflow-y-auto">
                 <div>
                   <label className="text-sm font-medium mb-2 block">Incident Type</label>
                   <Select value={reportData.type} onValueChange={(value) => setReportData(prev => ({ ...prev, type: value }))}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select incident type" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="z-[10002]">
                       <SelectItem value="flood">Flood</SelectItem>
                       <SelectItem value="fire">Fire</SelectItem>
                       <SelectItem value="landslide">Landslide</SelectItem>
@@ -203,6 +220,7 @@ export function ReportIncidentDialog() {
                   >
                     Submit Report
                   </Button>
+                </div>
                 </div>
               </div>
             </div>

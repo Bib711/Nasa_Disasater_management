@@ -342,8 +342,7 @@ const DynamicMap = dynamic(
     })
   },
   { 
-    ssr: false,
-    loading: () => <div className="h-full w-full flex items-center justify-center bg-muted">Loading map...</div>
+    ssr: false
   }
 )
 
@@ -363,8 +362,6 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
   // Ensure component only renders on client side
   useEffect(() => {
     setMounted(true)
-    // Import CSS only on client side
-    import('leaflet/dist/leaflet.css')
     
     // Get user location for filtering alerts
     if (navigator.geolocation) {
@@ -446,28 +443,13 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
   if (!mounted) {
     return (
       <div className="w-full" style={{ height: `${height}px` }}>
-        <div className="h-full w-full flex items-center justify-center bg-muted rounded-md">
-          <div className="text-center">
-            <div className="text-lg font-medium">Loading Map...</div>
-            <div className="text-sm text-muted-foreground">Initializing...</div>
-          </div>
+        <div className="h-full w-full bg-muted rounded-md">
         </div>
       </div>
     )
   }
 
-  if (isLoading) {
-    return (
-      <div className="w-full" style={{ height: `${height}px` }}>
-        <div className="h-full w-full flex items-center justify-center bg-muted rounded-md">
-          <div className="text-center">
-            <div className="text-lg font-medium">Loading Map...</div>
-            <div className="text-sm text-muted-foreground">Fetching alerts and disaster data</div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+
 
   if (nasaError && localError) {
     return (

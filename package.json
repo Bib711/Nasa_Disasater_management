@@ -50,7 +50,6 @@
     "input-otp": "latest",
     "leaflet": "latest",
     "lucide-react": "^0.454.0",
-    "mapbox-gl": "latest",
     "mongoose": "latest",
     "next": "15.2.4",
     "next-auth": "latest",

@@ -79,7 +79,7 @@ export default function DashboardPage() {
             <CardTitle>Live Map</CardTitle>
           </CardHeader>
           <CardContent>
-            <Suspense fallback={<div className="h-[520px] bg-muted rounded-lg flex items-center justify-center">Loading map...</div>}>
+            <Suspense fallback={<div className="h-[520px] bg-muted rounded-lg"></div>}>
               <MapClient 
                 initial={defaultCenter} 
                 height={520}
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             <CardTitle>Local Alerts (150km radius)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Suspense fallback={<div className="text-sm text-muted-foreground">Loading alerts...</div>}>
+            <Suspense fallback={<div></div>}>
               {/* SWR client component */}
               <AlertList />
             </Suspense>

@@ -12,7 +12,7 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 const CentralizedMapComponent = dynamic(
   () => {
     if (typeof window === 'undefined') {
-      return Promise.resolve(() => <div>Loading map...</div>)
+      return Promise.resolve(() => <div></div>)
     }
     
     return import("react-leaflet").then((mod) => {
@@ -229,8 +229,7 @@ const CentralizedMapComponent = dynamic(
     })
   },
   { 
-    ssr: false,
-    loading: () => <div className="h-full w-full flex items-center justify-center bg-muted">Loading map...</div>
+    ssr: false
   }
 )
 
