@@ -2,6 +2,7 @@
 
 import { useMemo, useEffect, useState } from 'react'
 import dynamic from 'next/dynamic'
+import L from 'leaflet'
 import useSWR from 'swr'
 import { Button } from '@/components/ui/button'
 import { LocateFixed } from 'lucide-react'
@@ -45,9 +46,13 @@ function getAlertIcon(type: string) {
       return '💨'
     case 'volcanoes':
     case 'volcanic':
+    case 'volcano':
       return '🌋'
     case 'sea and lake ice':
       return '🧊'
+    case 'disaster':
+    case 'unknown':
+      return '⚠️'
     default:
       return '⚠️'
   }
@@ -192,7 +197,7 @@ const DynamicMap = dynamic(
           )
         }
 
-        function SimpleMap({ center, events, localAlerts, height, showLocateButton = true }: any) {
+        function SimpleMap({ center, events, localAlerts, reliefCenters, height, showLocateButton = true }: any) {
           // Store Leaflet in window for access in other functions
           useEffect(() => {
             if (typeof window !== 'undefined') {
@@ -223,7 +228,10 @@ const DynamicMap = dynamic(
 
                 {/* Local alerts markers */}
                 {localAlerts && localAlerts.map((alert: any) => {
-                  if (!alert.lat || !alert.lng || isNaN(alert.lat) || isNaN(alert.lng)) return null
+                  // Skip alerts without valid coordinates but be more lenient
+                  if (alert.lat === 0 && alert.lng === 0) return null
+                  if (typeof alert.lat !== 'number' || typeof alert.lng !== 'number') return null
+                  if (isNaN(alert.lat) || isNaN(alert.lng)) return null
                   
                   const alertIcon = getAlertIcon(alert.type)
                   const severityColor = alert.severity === 'high' ? '#ef4444' : 
@@ -332,6 +340,60 @@ const DynamicMap = dynamic(
                     </Marker>
                   )
                 })}
+
+                {/* Relief center markers */}
+                {reliefCenters && reliefCenters.map((center: any) => {
+                  // Skip centers without valid coordinates
+                  if (center.lat === 0 && center.lng === 0) return null
+                  if (typeof center.lat !== 'number' || typeof center.lng !== 'number') return null
+                  if (isNaN(center.lat) || isNaN(center.lng)) return null
+                  
+                  return (
+                    <Marker
+                      key={`relief-${center.id}`}
+                      position={[center.lat, center.lng]}
+                      icon={L.divIcon({
+                        className: 'relief-center-marker',
+                        html: `<div style="
+                          background: #10b981;
+                          width: 30px;
+                          height: 30px;
+                          border-radius: 50%;
+                          border: 3px solid white;
+                          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                          font-size: 14px;
+                        ">🏥</div>`,
+                        iconSize: [30, 30],
+                        iconAnchor: [15, 15]
+                      })}
+                    >
+                      <Popup>
+                        <div className="min-w-[220px]">
+                          <div className="font-semibold text-sm">{center.name}</div>
+                          <div className="text-xs text-muted-foreground mb-2">
+                            Relief Center
+                          </div>
+                          {center.details && (
+                            <div className="text-xs mb-2 max-w-[200px]">
+                              {center.details}
+                            </div>
+                          )}
+                          {center.distance && (
+                            <div className="text-xs text-blue-600 mb-2">
+                              🏥 {center.distance.toFixed(1)} km away
+                            </div>
+                          )}
+                          <div className="text-xs text-muted-foreground">
+                            Health Facility
+                          </div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  )
+                })}
               </MapContainer>
             </div>
           )
@@ -358,7 +420,7 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null)
   const defaultLat = 28.6139
   const defaultLng = 77.2090
-  
+
   // Ensure component only renders on client side
   useEffect(() => {
     setMounted(true)
@@ -373,7 +435,7 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
           })
         },
         (error) => {
-          console.warn("Location access denied:", error)
+          console.warn("Location access denied:", error.message, error.code)
           // Default to center location if GPS is denied
           const lat = typeof initial.lat === 'number' && !isNaN(initial.lat) ? initial.lat : defaultLat
           const lng = typeof initial.lng === 'number' && !isNaN(initial.lng) ? initial.lng : defaultLng
@@ -381,6 +443,7 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
         }
       )
     } else {
+      console.log('Geolocation not supported by browser')
       // Default location
       const lat = typeof initial.lat === 'number' && !isNaN(initial.lat) ? initial.lat : defaultLat
       const lng = typeof initial.lng === 'number' && !isNaN(initial.lng) ? initial.lng : defaultLng
@@ -394,28 +457,16 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
     return [lat, lng] as [number, number]
   }, [initial.lat, initial.lng])
 
-  // Build API URL with location parameters for local alerts
-  const alertsUrl = userLocation 
-    ? `/api/alerts?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=150`
-    : '/api/alerts'
+  // Build API URL - use same as dashboards (no location filtering)
+  const alertsUrl = '/api/alerts'
 
-  // Fetch local alerts
+  // Fetch local alerts (now includes all alerts: manual, imported, and verified citizen reports)
   const { data: localAlertsData, error: localError } = useSWR(
-    mounted && userLocation ? alertsUrl : null,
+    mounted ? alertsUrl : null,
     fetcher, 
     { 
-      revalidateOnFocus: false,
-      refreshInterval: 120000 // 2 minutes
-    }
-  )
-
-  // Fetch accepted reports (active incidents)
-  const { data: acceptedReportsData } = useSWR(
-    mounted ? '/api/reports?status=accepted' : null,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      refreshInterval: 30000 // 30 seconds
+      revalidateOnFocus: true,
+      refreshInterval: 5000 // Same as dashboards - 5 seconds
     }
   )
 
@@ -429,46 +480,68 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
     }
   )
 
+  // Fetch relief centers
+  const { data: reliefCentersData, error: reliefError, mutate: mutateReliefCenters } = useSWR(
+    mounted ? "/api/relief-centers" : null,
+    fetcher,
+    {
+      refreshInterval: 30000, // Refresh every 30 seconds
+      revalidateOnFocus: true
+    }
+  )
+
+  // Listen for relief center updates
+  useEffect(() => {
+    const handleReliefCenterAdded = () => {
+      mutateReliefCenters()
+    }
+
+    window.addEventListener("reliefCenterAdded", handleReliefCenterAdded)
+    
+    return () => {
+      window.removeEventListener("reliefCenterAdded", handleReliefCenterAdded)
+    }
+  }, [mutateReliefCenters])
+
   const events = nasaData?.events || []
   
-  // Transform local alerts data
-  const localAlerts = (localAlertsData?.alerts || []).map((alert: any) => ({
-    id: alert._id,
-    title: alert.title || alert.type,
-    type: alert.type,
-    severity: alert.severity || 'moderate',
-    description: alert.details || alert.title,
-    lat: alert.location?.coordinates?.[1] || 0,
-    lng: alert.location?.coordinates?.[0] || 0,
-    date: alert.createdAt || new Date().toISOString(),
-    source: 'Local Alert',
-    distance: userLocation ? calculateDistance(
-      userLocation.lat, userLocation.lng,
-      alert.location?.coordinates?.[1] || 0,
-      alert.location?.coordinates?.[0] || 0
-    ) : null
-  }))
+  // Transform local alerts data (now includes both manual alerts and verified citizen reports)
+  const localAlerts = (localAlertsData?.alerts || []).map((alert: any) => {
+    const lat = alert.location?.coordinates?.[1] || 0
+    const lng = alert.location?.coordinates?.[0] || 0
+    
+    return {
+      id: alert._id,
+      title: alert.title || alert.type,
+      type: alert.type,
+      severity: alert.severity || 'moderate',
+      description: alert.details || alert.title,
+      lat: lat,
+      lng: lng,
+      date: alert.createdAt || new Date().toISOString(),
+      source: alert.source || 'Local Alert',
+      distance: userLocation ? calculateDistance(
+        userLocation.lat, userLocation.lng, lat, lng
+      ) : null
+    }
+  })
 
-  // Transform accepted reports (active incidents) data
-  const activeIncidents = (acceptedReportsData?.reports || []).map((report: any) => ({
-    id: report._id,
-    title: `Active: ${report.type}`,
-    type: report.type,
-    severity: 'high', // Active incidents get high priority
-    description: report.details || 'Citizen reported incident under investigation',
-    lat: report.location?.coordinates?.[1] || 0,
-    lng: report.location?.coordinates?.[0] || 0,
-    date: report.createdAt || new Date().toISOString(),
-    source: 'Active Incident',
-    distance: userLocation ? calculateDistance(
-      userLocation.lat, userLocation.lng,
-      report.location?.coordinates?.[1] || 0,
-      report.location?.coordinates?.[0] || 0
-    ) : null
-  }))
-
-  // Combine all alerts for map display
-  const allMapAlerts = [...localAlerts, ...activeIncidents]
+  // Transform relief centers data
+  const reliefCenters = (reliefCentersData?.centers || []).map((center: any) => {
+    const lat = center.location?.coordinates?.[1] || 0
+    const lng = center.location?.coordinates?.[0] || 0
+    
+    return {
+      id: center._id,
+      name: center.name,
+      details: center.details || '',
+      lat: lat,
+      lng: lng,
+      distance: userLocation ? calculateDistance(
+        userLocation.lat, userLocation.lng, lat, lng
+      ) : null
+    }
+  })
 
   // Don't render anything on server side
   if (!mounted) {
@@ -500,7 +573,8 @@ export function MapClient({ initial, height = 420, showLocateButton = true }: Pr
       <DynamicMap 
         center={center} 
         events={events} 
-        localAlerts={allMapAlerts}
+        localAlerts={localAlerts}
+        reliefCenters={reliefCenters}
         height={height} 
         showLocateButton={showLocateButton} 
       />

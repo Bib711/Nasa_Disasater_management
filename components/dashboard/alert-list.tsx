@@ -40,17 +40,15 @@ export function AlertList() {
     }
   }, [])
   
-  // Build API URL with location parameters
-  const alertsUrl = userLocation 
-    ? `/api/alerts?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=150`
-    : '/api/alerts'
+  // Build API URL - use same as rescue worker dashboard (no location filtering)
+  const alertsUrl = '/api/alerts'
   
   const { data: localAlertsData, error: localError, isLoading: localLoading } = useSWR(
-    userLocation ? alertsUrl : null,
+    alertsUrl,
     fetcher, 
     { 
-      revalidateOnFocus: false,
-      refreshInterval: 120000 // 2 minutes
+      revalidateOnFocus: true,
+      refreshInterval: 5000 // Same as rescue dashboard - 5 seconds
     }
   )
 
@@ -76,23 +74,38 @@ export function AlertList() {
     return R * c
   }
 
-  // Transform and combine alerts
-  const localAlerts = (localAlertsData?.alerts || []).map((alert: any) => ({
-    id: alert._id,
-    title: alert.title || alert.type,
-    type: alert.type,
-    severity: alert.severity || 'moderate',
-    description: alert.details || alert.title,
-    lat: alert.location?.coordinates?.[1] || 0,
-    lng: alert.location?.coordinates?.[0] || 0,
-    date: alert.createdAt || new Date().toISOString(),
-    source: 'Local Alert',
-    distance: userLocation ? calculateDistance(
-      userLocation.lat, userLocation.lng,
-      alert.location?.coordinates?.[1] || 0,
-      alert.location?.coordinates?.[0] || 0
-    ) : null
-  }))
+  // Use the alerts directly from the API (same as rescue dashboard)
+  const localAlerts = localAlertsData?.alerts || []
+
+  function getReportIcon(type: string) {
+    switch (type?.toLowerCase()) {
+      case 'fire':
+      case 'wildfire':
+        return '🔥'
+      case 'flood':
+        return '🌊'
+      case 'earthquake':
+        return '🌍'
+      case 'storm':
+      case 'cyclone':
+        return '🌪️'
+      case 'landslide':
+        return '⛰️'
+      case 'medical':
+        return '🚑'
+      case 'accident':
+        return '🚗'
+      case 'drought':
+        return '🌵'
+      case 'volcano':
+      case 'volcanoes':
+        return '🌋'
+      case 'disaster':
+        return '⚠️'
+      default:
+        return '⚠️'
+    }
+  }
 
   // Transform NASA events and filter by distance
   const nasaEvents = (nasaData?.events || [])
@@ -103,8 +116,8 @@ export function AlertList() {
       const [lng, lat] = geometry.coordinates
       const distance = userLocation ? calculateDistance(userLocation.lat, userLocation.lng, lat, lng) : null
       
-      // Only include NASA events within 150km
-      if (distance && distance > 150) return null
+      // Only include NASA events within 250km
+      if (distance && distance > 250) return null
       
       return {
         id: event.id,
@@ -216,6 +229,19 @@ export function AlertList() {
     }
   }
 
+  function getSourceVariant(source: string) {
+    switch (source) {
+      case 'Citizen Report (Verified)':
+        return 'default' // Blue badge for verified citizen reports
+      case 'Local Alert':
+        return 'secondary' // Gray badge for manual alerts
+      case 'NASA EONET':
+        return 'outline' // Outlined badge for NASA data
+      default:
+        return 'secondary'
+    }
+  }
+
   function formatDate(dateString: string) {
     if (!mounted) return 'Recently' // Prevent hydration mismatch
     
@@ -242,17 +268,16 @@ export function AlertList() {
     if (userLocation) {
       return (
         <div className="text-xs text-green-600 mb-2 p-2 bg-green-50 rounded">
-          📍 Showing alerts within 150km of your location
+          📍 Showing alerts within 250km of your location
         </div>
       )
     }
     return null
   }
 
-  if (isLoading) {
+  if (localLoading) {
     return (
       <div className="space-y-2">
-        {getLocationStatus()}
         {[...Array(3)].map((_, i) => (
           <div key={i} className="animate-pulse bg-muted rounded-lg p-3 h-20" />
         ))}
@@ -260,7 +285,7 @@ export function AlertList() {
     )
   }
 
-  if (hasError) {
+  if (localError) {
     return (
       <div className="text-center py-4">
         <AlertTriangle className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
@@ -272,81 +297,69 @@ export function AlertList() {
     )
   }
 
-  if (allAlerts.length === 0) {
+  if (localAlerts.length === 0) {
     return (
-      <div className="space-y-2">
-        {getLocationStatus()}
-        <div className="text-center py-8">
-          <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">No active alerts nearby</p>
-          <p className="text-xs text-muted-foreground mt-1">All clear in your 150km radius</p>
-        </div>
+      <div className="text-center py-8">
+        <AlertTriangle className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+        <p className="text-sm text-muted-foreground">No active alerts</p>
+        <p className="text-xs text-muted-foreground mt-1">All clear</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-2">
-      {getLocationStatus()}
       <div className="space-y-2 max-h-80 overflow-y-auto">
-        {allAlerts.map((alert: any) => (
+        {localAlerts.map((alert: any) => (
           <div
-            key={`${alert.source}-${alert.id}`}
-            className="border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer bg-card"
-            onClick={() => viewOnMap(alert)}
-            title="Click to view on map"
+            key={alert._id}
+            className={`border rounded-lg p-3 space-y-2 hover:bg-muted/50 transition-colors cursor-pointer ${
+              alert.source === 'Citizen Report (Verified)' ? 'border-blue-200 bg-blue-50' : 
+              alert.source === 'NASA Import' ? 'border-orange-200 bg-orange-50' :
+              'border-gray-200'
+            }`}
+            onClick={() => {
+              const lat = alert.location?.coordinates?.[1]
+              const lng = alert.location?.coordinates?.[0]
+              if (lat && lng) {
+                window.dispatchEvent(new CustomEvent("jaagratha:panTo", { 
+                  detail: { lat, lng, title: alert.title, zoom: 14 } 
+                }))
+                toast({ title: "Viewing on map", description: alert.title })
+              }
+            }}
           >
             <div className="flex items-start justify-between gap-2">
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <span className="text-lg">{getAlertIcon(alert.type)}</span>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-medium text-sm leading-tight truncate">
-                    {alert.title || alert.type || 'Unnamed Alert'}
-                  </h4>
-                  <div className="flex items-center gap-2 mt-1">
-                    {alert.severity && (
-                      <Badge 
-                        variant={getSeverityVariant(alert.severity)} 
-                        className="text-xs"
-                      >
-                        {alert.severity.toUpperCase()}
-                      </Badge>
-                    )}
-                    <Badge 
-                      variant={alert.source === 'Local Alert' ? 'default' : 'secondary'} 
-                      className="text-xs"
-                    >
-                      {alert.source}
-                    </Badge>
-                  </div>
+              <div className="flex items-center gap-2 flex-1">
+                <span className="text-lg">{getReportIcon(alert.type)}</span>
+                <div className="flex-1">
+                  <h4 className="font-medium text-sm">{alert.title || alert.type}</h4>
+                  <p className="text-xs text-gray-700 line-clamp-2">{alert.details}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className={`text-xs px-2 py-1 rounded-full ${
+                  alert.severity === 'high' ? 'bg-red-100 text-red-800' :
+                  alert.severity === 'moderate' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-gray-100 text-gray-800'
+                }`}>
+                  {alert.severity?.toUpperCase() || 'ACTIVE'}
+                </span>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {alert.source || 'Local Alert'}
                 </div>
               </div>
             </div>
-            
-            {alert.description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                {alert.description}
-              </p>
-            )}
-            
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {formatDate(alert.date)}
-                </div>
-                {alert.distance && (
-                  <div className="flex items-center gap-1">
-                    <LocateFixed className="w-3 h-3" />
-                    {alert.distance.toFixed(1)}km away
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-1 text-blue-600">
-                <MapPin className="w-3 h-3" />
-                <span className="text-xs font-medium">View on Map</span>
-              </div>
-            </div>
+            {(() => {
+              const lat = alert.location?.coordinates?.[1]
+              const lng = alert.location?.coordinates?.[0]
+              if (lat && lng) {
+                return (
+                  <div className="text-xs text-muted-foreground">📍 {lat.toFixed(4)}, {lng.toFixed(4)}</div>
+                )
+              }
+              return null
+            })()}
           </div>
         ))}
       </div>

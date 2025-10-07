@@ -15,6 +15,118 @@ export function GlobalEvents() {
     revalidateOnFocus: false,
   })
 
+  async function importAsLocalAlert(event: any) {
+    try {
+      const geometry = event.geometries?.[event.geometries.length - 1]
+      if (!geometry?.coordinates) {
+        toast({
+          title: "Cannot import",
+          description: "This event doesn't have location data",
+          variant: "destructive"
+        })
+        return
+      }
+
+      const [lng, lat] = geometry.coordinates
+      const category = event.categories?.[0]?.title || 'Unknown'
+      
+      // Map NASA categories to local alert types
+      const getLocalType = (category: string) => {
+        const cat = category.toLowerCase()
+        if (cat.includes('wildfire') || cat.includes('fire')) return 'fire'
+        if (cat.includes('flood')) return 'flood'
+        if (cat.includes('earthquake')) return 'earthquake'
+        if (cat.includes('storm') || cat.includes('cyclone') || cat.includes('hurricane')) return 'storm'
+        if (cat.includes('volcano')) return 'volcano'
+        if (cat.includes('drought')) return 'drought'
+        if (cat.includes('landslide')) return 'landslide'
+        return 'disaster'
+      }
+
+      // Map NASA events to severity levels
+      const getSeverity = (category: string) => {
+        const cat = category.toLowerCase()
+        if (cat.includes('wildfire') || cat.includes('volcano') || cat.includes('earthquake')) return 'high'
+        if (cat.includes('storm') || cat.includes('hurricane') || cat.includes('cyclone')) return 'high'
+        return 'moderate'
+      }
+
+      const alertData = {
+        type: getLocalType(category),
+        title: `${category}: ${event.title}`,
+        details: `Imported from NASA EONET: ${event.description || event.title}. Last updated: ${new Date(geometry.date).toLocaleString()}`,
+        location: {
+          type: "Point",
+          coordinates: [lng, lat]
+        },
+        severity: getSeverity(category),
+        source: "NASA Import"
+      }
+
+      const response = await fetch('/api/alerts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(alertData)
+      })
+
+      if (response.ok) {
+        // Trigger refresh of alerts in other components
+        window.dispatchEvent(new CustomEvent('alertsUpdated'))
+        
+        // Also trigger a more forceful refresh
+        setTimeout(() => {
+          window.location.reload()
+        }, 500)
+        
+        toast({
+          title: "Alert Imported Successfully", 
+          description: `${event.title} has been added to local alerts`,
+        })
+      } else {
+        throw new Error('Failed to create alert')
+      }
+    } catch (error) {
+      console.error('Error importing alert:', error)
+      toast({
+        title: "Import Failed",
+        description: "Failed to import this event as a local alert",
+        variant: "destructive"
+      })
+    }
+  }
+
+  async function bulkImportNearbyEvents() {
+    try {
+      let imported = 0
+      let failed = 0
+      
+      for (const event of recentEvents.slice(0, 5)) { // Import up to 5 recent events
+        try {
+          await importAsLocalAlert(event)
+          imported++
+          // Small delay to avoid overwhelming the server
+          await new Promise(resolve => setTimeout(resolve, 100))
+        } catch (error) {
+          failed++
+        }
+      }
+      
+      // Trigger refresh of alerts in other components
+      window.dispatchEvent(new CustomEvent('alertsUpdated'))
+      
+      toast({
+        title: "Bulk Import Complete",
+        description: `Imported ${imported} events${failed > 0 ? `, ${failed} failed` : ''}`,
+      })
+    } catch (error) {
+      toast({
+        title: "Bulk Import Failed",
+        description: "Error during bulk import operation",
+        variant: "destructive"
+      })
+    }
+  }
+
   function viewEventOnMap(event: any) {
     // Get the latest geometry from the event
     const geometry = event.geometries?.[event.geometries.length - 1]
@@ -155,7 +267,25 @@ export function GlobalEvents() {
   }
 
   return (
-    <div className="space-y-2 max-h-80 overflow-y-auto">
+    <div className="space-y-3">
+      {/* Bulk Import Header */}
+      <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+        <div className="text-xs text-muted-foreground">
+          {recentEvents.length} global events found
+        </div>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={bulkImportNearbyEvents}
+          className="h-7 px-3 text-xs"
+          disabled={recentEvents.length === 0}
+        >
+          📥 Import Top 5 Events
+        </Button>
+      </div>
+      
+      {/* Events List */}
+      <div className="space-y-2 max-h-72 overflow-y-auto">
       {recentEvents.map((event: any) => {
         const geometry = event.geometries[event.geometries.length - 1]
         const [lng, lat] = geometry.coordinates
@@ -199,6 +329,17 @@ export function GlobalEvents() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs">📍 {lat.toFixed(2)}, {lng.toFixed(2)}</span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 px-2 text-xs"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    importAsLocalAlert(event)
+                  }}
+                >
+                  📥 Import
+                </Button>
                 <div className="flex items-center gap-1 text-blue-600">
                   <MapPin className="w-3 h-3" />
                   <span className="text-xs font-medium">View on Map</span>
@@ -213,6 +354,7 @@ export function GlobalEvents() {
         <p className="text-xs text-muted-foreground">
           Data from NASA Earth Observatory (EONET)
         </p>
+      </div>
       </div>
     </div>
   )

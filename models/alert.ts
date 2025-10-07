@@ -17,6 +17,8 @@ const AlertSchema = new Schema(
     status: { type: String, enum: ["active", "resolved"], default: "active" },
     severity: { type: String, enum: ["high", "moderate", "low"] },
     createdBy: { type: Types.ObjectId, ref: "User" },
+    resolvedAt: { type: Date },
+    source: { type: String, default: "Manual Alert" },
   },
   { timestamps: true },
 )

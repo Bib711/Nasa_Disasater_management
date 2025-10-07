@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react"
 import { MapContainer, TileLayer, Marker, Popup, WMSTileLayer, useMapEvents } from "react-leaflet"
+import L from "leaflet"
 
 // Fix default marker icons
 const iconRetina = "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png"
@@ -198,6 +199,23 @@ const LeafletWrapper = ({
             <Marker
               key={center._id}
               position={[lat, lng]}
+              icon={L.divIcon({
+                className: 'relief-center-marker',
+                html: `<div style="
+                  background: #10b981;
+                  width: 30px;
+                  height: 30px;
+                  border-radius: 50%;
+                  border: 3px solid white;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 14px;
+                ">🏥</div>`,
+                iconSize: [30, 30],
+                iconAnchor: [15, 15]
+              })}
             >
               <Popup>
                 <div className="min-w-[200px]">

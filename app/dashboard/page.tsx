@@ -91,7 +91,7 @@ export default function DashboardPage() {
       <aside className="space-y-4">
         <Card>
           <CardHeader>
-            <CardTitle>Local Alerts (150km radius)</CardTitle>
+            <CardTitle>Local Alerts (250km radius)</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <Suspense fallback={<div></div>}>
@@ -112,9 +112,9 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 gap-2">
           <ReportIncidentDialog />
-          <Button onClick={findNearest}>
+          <Button onClick={findNearest} className="bg-green-600 hover:bg-green-700 text-white">
             <MapPin className="w-4 h-4 mr-2" />
-            Find Nearest Relief Center
+            🏥 Find Nearest Relief Center
           </Button>
           <Button 
             variant="outline" 
