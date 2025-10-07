@@ -48,3 +48,42 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await getDb()
+    
+    const body = await request.json()
+    const { id } = body
+    
+    if (!id) {
+      return NextResponse.json(
+        { error: "Relief center ID is required" },
+        { status: 400 }
+      )
+    }
+    
+    const deletedCenter = await ReliefCenter.findByIdAndDelete(id)
+    
+    if (!deletedCenter) {
+      return NextResponse.json(
+        { error: "Relief center not found" },
+        { status: 404 }
+      )
+    }
+    
+    return NextResponse.json(
+      { 
+        message: "Relief center deleted successfully",
+        center: deletedCenter 
+      },
+      { status: 200 }
+    )
+  } catch (error) {
+    console.error("Relief Center Deletion Error:", error)
+    return NextResponse.json(
+      { error: "Failed to delete relief center" },
+      { status: 500 }
+    )
+  }
+}

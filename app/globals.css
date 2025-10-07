@@ -124,3 +124,25 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Fix for Dialog z-index issues with maps */
+[data-radix-popper-content-wrapper] {
+  z-index: 99999 !important;
+}
+
+[role="dialog"] {
+  z-index: 99999 !important;
+}
+
+[data-state="open"][role="dialog"] {
+  z-index: 99999 !important;
+}
+
+/* Ensure map containers have lower z-index */
+.leaflet-container {
+  z-index: 1 !important;
+}
+
+.leaflet-control-container {
+  z-index: 100 !important;
+}

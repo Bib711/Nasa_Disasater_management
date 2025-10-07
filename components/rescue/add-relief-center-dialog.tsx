@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Building2, MapPin, Loader2 } from "lucide-react"
+import { Building2, MapPin, Loader2, Map, ExternalLink } from "lucide-react"
 
 export function AddReliefCenterDialog() {
   const [open, setOpen] = useState(false)
@@ -86,6 +86,11 @@ export function AddReliefCenterDialog() {
       return
     }
 
+    toast({
+      title: "Getting Location...",
+      description: "Please wait while we get your current location.",
+    })
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setFormData(prev => ({
@@ -101,18 +106,54 @@ export function AddReliefCenterDialog() {
       (error) => {
         toast({
           title: "Location Error",
-          description: "Unable to retrieve your current location.",
+          description: "Unable to retrieve your current location. Please enter coordinates manually.",
           variant: "destructive",
         })
       }
     )
   }
 
+  const openGoogleMaps = () => {
+    const defaultLat = formData.lat || "10.068"
+    const defaultLng = formData.lng || "76.628"
+    const googleMapsUrl = `https://www.google.com/maps/@${defaultLat},${defaultLng},15z`
+    window.open(googleMapsUrl, '_blank')
+    toast({
+      title: "Google Maps Opened",
+      description: "Use Google Maps to find coordinates, then copy them back here.",
+    })
+  }
+
+  // Handle dialog close
+  const handleDialogClose = (isOpen: boolean) => {
+    setOpen(isOpen)
+  }
+
   return (
     <>
+      {/* Custom CSS to ensure dialog appears above everything */}
+      {open && (
+        <style dangerouslySetInnerHTML={{
+          __html: `
+            [data-radix-popper-content-wrapper] {
+              z-index: 99999 !important;
+            }
+            [data-state="open"][role="dialog"] {
+              z-index: 99999 !important;
+            }
+            [data-state="open"] {
+              z-index: 99999 !important;
+            }
+            .leaflet-container {
+              z-index: 1 !important;
+            }
+          `
+        }} />
+      )}
+
       {/* Loading Overlay - appears above everything */}
       {loading && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[99998] flex items-center justify-center">
           <div className="bg-white rounded-lg p-6 flex flex-col items-center gap-4 min-w-[200px]">
             <Loader2 className="w-8 h-8 animate-spin text-green-600" />
             <div className="text-sm font-medium text-center">
@@ -125,14 +166,17 @@ export function AddReliefCenterDialog() {
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={handleDialogClose}>
         <DialogTrigger asChild>
           <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white w-full">
             <Building2 className="w-4 h-4 mr-2" />
             🏥 Add Relief Center
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[425px] z-50">
+        <DialogContent 
+          className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto" 
+          style={{ zIndex: 99999, position: 'fixed' }}
+        >
           <DialogHeader>
             <DialogTitle>Add New Relief Center</DialogTitle>
             <DialogDescription>
@@ -189,21 +233,38 @@ export function AddReliefCenterDialog() {
               </div>
             </div>
 
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={getCurrentLocation}
-              className="w-full"
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              Use Current Location
-            </Button>
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Location Options</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={getCurrentLocation}
+                  className="w-full"
+                >
+                  <MapPin className="w-4 h-4 mr-2" />
+                  Use GPS
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={openGoogleMaps}
+                  className="w-full"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Google Maps
+                </Button>
+              </div>
+              <div className="text-xs text-muted-foreground bg-blue-50 p-3 rounded-lg">
+                💡 <strong>Tip:</strong> Click "Google Maps" to open maps in a new tab. Right-click on your desired location → "What's here?" → Copy the coordinates back to this form.
+              </div>
+            </div>
 
             <div className="flex gap-2">
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setOpen(false)}
+                onClick={() => handleDialogClose(false)}
                 className="flex-1"
               >
                 Cancel

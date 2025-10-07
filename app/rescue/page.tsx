@@ -6,6 +6,7 @@ import { MapClient } from "@/components/map/map-client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { RescueTabs } from "@/components/rescue/rescue-tabs"
 import { AddReliefCenterDialog } from "@/components/rescue/add-relief-center-dialog"
+import { ManageReliefCentersDialog } from "@/components/rescue/manage-relief-centers-dialog"
 import { Button } from "@/components/ui/button"
 import { LocateFixed } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
@@ -132,6 +133,8 @@ export default function RescueDashboard() {
         </Button>
 
         <AddReliefCenterDialog />
+
+        <ManageReliefCentersDialog />
 
         <Button
           variant="outline"
