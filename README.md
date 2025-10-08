@@ -13,7 +13,7 @@ A comprehensive disaster management application built with Next.js 15, featuring
 
 ## 🚀 Live Demo
 
-**🔗 [View Live Application](https://your-app-name.vercel.app)**
+**🔗 [View Live Application](https://nasa-disasater-management-1lefvo2al-bibin-bennys-projects.vercel.app/)**
 
 ## 📱 Quick Start
 
